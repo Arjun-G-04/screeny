@@ -1,0 +1,16 @@
+# Swift / Xcode
+.build/
+.swiftpm/
+*.o
+*.d
+*.swp
+xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Logs (written by launchd)
+/tmp/walknotifier.*

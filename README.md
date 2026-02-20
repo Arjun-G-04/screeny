@@ -1,72 +1,35 @@
-# Screeny Walk Notification System
+# Screeny — Walk Notification CLI
 
-A simple, lightweight background service for macOS that notifies you to take a walk every 50 minutes (or any interval you choose).
+A native macOS background service that interrupts you with a fullscreen **"Walk"** screen every N minutes. Dismiss it only by clicking **Skip** 20 times.
 
-## 🚀 How It Works
+Built with Swift + AppKit. Scheduled via macOS `launchd`.
 
-This system uses macOS native **launchd** to schedule a shell script execution.
-
-- **Notifier Script**: `~/.screeny/walk_notifier.sh` - Sends the actual notification.
-- **Service Config**: `~/Library/LaunchAgents/com.arjun.walknotifier.plist` - Tells macOS when to run the script.
-
-## � First Time Setup
-
-If you are setting this up from scratch (e.g., on a new machine), follow these steps:
-
-1.  **Create the script directory**:
-    ```bash
-    mkdir -p ~/.screeny
-    ```
-2.  **Move the notification script**:
-    ```bash
-    cp ./walk_notifier.sh ~/.screeny/
-    chmod +x ~/.screeny/walk_notifier.sh
-    ```
-3.  **Install the Launch Agent**:
-    ```bash
-    cp ./com.arjun.walknotifier.plist ~/Library/LaunchAgents/
-    ```
-4.  **Start the Service**:
-    ```bash
-    launchctl load ~/Library/LaunchAgents/com.arjun.walknotifier.plist
-    ```
-
-## �🛠 Usage
-
-### Change the Notification Interval
-
-Use the provided helper script to change how often you get notified.
+## Install
 
 ```bash
-./change_interval.sh <minutes>
+chmod +x install.sh
+./install.sh
 ```
 
-**Example:** To set it to every 30 minutes:
-```bash
-./change_interval.sh 30
-```
+Builds the Swift binary, installs it to `/usr/local/bin/screeny`, and starts the launchd service. You'll be prompted for your password once (for the `/usr/local/bin` copy only).
 
-### Stop the Service
-
-To disable notifications completely:
+## Usage
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.arjun.walknotifier.plist
+screeny status           # view interval, last/next notification, service state
+screeny set <minutes>    # change notification interval
+screeny start            # start the service
+screeny stop             # stop the service
 ```
 
-### Start the Service
+## How It Works
 
-To enable notifications again:
+macOS **launchd** triggers `screeny --overlay` every N seconds (configured via `StartInterval` in the plist). The overlay is a borderless black window covering your screen fully — click **Skip** 20 times to dismiss it.
 
-```bash
-launchctl load ~/Library/LaunchAgents/com.arjun.walknotifier.plist
-```
+## File Locations
 
-## 📂 File Locations
-
-| File | Location | Description |
-|------|----------|-------------|
-| **Script** | `~/.screeny/walk_notifier.sh` | The code that runs when the timer hits. |
-| **Config** | `~/Library/LaunchAgents/com.arjun.walknotifier.plist` | The active schedule configuration. |
-| **Source Config** | `./com.arjun.walknotifier.plist` | A local copy of the config. The helper script updates this too. |
-| **Helper** | `./change_interval.sh` | Script to change the timer interval. |
+| File | Location |
+|------|----------|
+| Binary | `/usr/local/bin/screeny` |
+| Launch agent | `~/Library/LaunchAgents/com.arjun.walknotifier.plist` |
+| State (last fired, interval) | `~/.screeny/state.json` |

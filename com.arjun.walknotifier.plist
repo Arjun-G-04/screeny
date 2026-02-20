@@ -6,16 +6,16 @@
 	<string>com.arjun.walknotifier</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/bin/bash</string>
-		<string>/Users/arjun/.screeny/walk_notifier.sh</string>
+		<string>/usr/local/bin/screeny</string>
+		<string>--overlay</string>
 	</array>
 	<key>RunAtLoad</key>
-	<true/>
+	<false/>
 	<key>StandardErrorPath</key>
 	<string>/tmp/walknotifier.err</string>
 	<key>StandardOutPath</key>
 	<string>/tmp/walknotifier.out</string>
 	<key>StartInterval</key>
-	<integer>1800</integer>
+	<integer>2400</integer>
 </dict>
 </plist>

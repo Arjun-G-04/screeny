@@ -5,7 +5,10 @@ import Foundation
 
 final class OverlayViewController: NSViewController {
     private var clicksRemaining = 20
+    private var timeRemaining = 90
+    private var timer: Timer?
     private var skipButton: NSButton!
+    private var timeLabel: NSTextField!
 
     override func loadView() {
         view = NSView()
@@ -16,6 +19,7 @@ final class OverlayViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        startTimer()
     }
 
     private func setupUI() {
@@ -26,6 +30,14 @@ final class OverlayViewController: NSViewController {
         titleLabel.alignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleLabel)
+
+        // Time label
+        timeLabel = NSTextField(labelWithString: "01:30")
+        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 24, weight: .regular)
+        timeLabel.textColor = NSColor(white: 1.0, alpha: 0.7)
+        timeLabel.alignment = .center
+        timeLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(timeLabel)
 
         // Skip button
         skipButton = NSButton(title: skipTitle(), target: self, action: #selector(skipTapped))
@@ -43,13 +55,38 @@ final class OverlayViewController: NSViewController {
 
         NSLayoutConstraint.activate([
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -40),
+            titleLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -50),
+
+            timeLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            timeLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
 
             skipButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            skipButton.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 40),
+            skipButton.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 40),
             skipButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
             skipButton.heightAnchor.constraint(equalToConstant: 44),
         ])
+    }
+
+    private func startTimer() {
+        updateTimeLabel()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
+    }
+
+    private func tick() {
+        timeRemaining -= 1
+        if timeRemaining <= 0 {
+            closeOverlay()
+        } else {
+            updateTimeLabel()
+        }
+    }
+
+    private func updateTimeLabel() {
+        let minutes = timeRemaining / 60
+        let seconds = timeRemaining % 60
+        timeLabel.stringValue = String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func skipTitle() -> String {
@@ -59,8 +96,7 @@ final class OverlayViewController: NSViewController {
     @objc private func skipTapped() {
         clicksRemaining -= 1
         if clicksRemaining <= 0 {
-            view.window?.close()
-            NSApp.terminate(nil)
+            closeOverlay()
         } else {
             skipButton.title = skipTitle()
             // Flash: brighten border briefly
@@ -76,6 +112,12 @@ final class OverlayViewController: NSViewController {
                 }
             }
         }
+    }
+
+    private func closeOverlay() {
+        timer?.invalidate()
+        view.window?.close()
+        NSApp.terminate(nil)
     }
 }
 

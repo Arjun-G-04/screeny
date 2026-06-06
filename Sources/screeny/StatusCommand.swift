@@ -33,14 +33,28 @@ enum StatusCommand {
         print("├─────────────────────────────────────┤")
         print("│  Interval:   \(col("\(intervalMinutes) minutes"))│")
 
+        let currentUptime = ProcessInfo.processInfo.systemUptime
+        let lastUptime = state.lastFiredUptime ?? 0
+        
+        let effectiveLastUptime = currentUptime < lastUptime ? 0 : lastUptime
+        let activeElapsed = currentUptime - effectiveLastUptime
+        let remainingActive = Double(intervalSeconds) - activeElapsed
+
         if let last = state.lastFired {
             let lastStr = formatter.string(from: last)
             print("│  Last:       \(col(lastStr))│")
 
-            let next = last.addingTimeInterval(TimeInterval(intervalSeconds))
-            let nextStr = formatter.string(from: next)
-            let remaining = next.timeIntervalSinceNow
-            let inStr = remaining > 0 ? "~\(Int(remaining) / 60)m \(Int(remaining) % 60)s" : "overdue"
+            let nextDate = Date().addingTimeInterval(max(0, remainingActive))
+            let nextStr = formatter.string(from: nextDate)
+            
+            let inStr: String
+            if remainingActive > 0 {
+                let remMinutes = Int(remainingActive) / 60
+                let remSeconds = Int(remainingActive) % 60
+                inStr = "~\(remMinutes)m \(remSeconds)s (active)"
+            } else {
+                inStr = "overdue"
+            }
             print("│  Next:       \(col(nextStr))│")
             print("│  In:         \(col(inStr))│")
         } else {

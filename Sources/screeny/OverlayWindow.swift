@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Darwin
 
 // MARK: - OverlayViewController
 
@@ -129,6 +130,20 @@ final class OverlayViewController: NSViewController {
 enum OverlayCommand {
     static func run() {
         let state = StateManager.load()
+
+        let args = CommandLine.arguments
+        let force = args.contains("--force") || args.contains("-f") || isatty(STDOUT_FILENO) != 0
+
+        if !force {
+            let currentUptime = ProcessInfo.processInfo.systemUptime
+            let lastUptime = state.lastFiredUptime ?? 0
+            let effectiveLastUptime = currentUptime < lastUptime ? 0 : lastUptime
+            let activeElapsed = currentUptime - effectiveLastUptime
+
+            if activeElapsed < Double(state.intervalSeconds) {
+                exit(0)
+            }
+        }
 
         let app = NSApplication.shared
         app.setActivationPolicy(.regular)

@@ -14,6 +14,16 @@ enum StateManager {
         .appendingPathComponent(".screeny")
     static let stateFile = screenyDir.appendingPathComponent("state.json")
 
+    private static func getSystemTimeVal(name: String) -> Date? {
+        var size = MemoryLayout<timeval>.size
+        var tv = timeval(tv_sec: 0, tv_usec: 0)
+        let result = sysctlbyname(name, &tv, &size, nil, 0)
+        if result == 0 {
+            return Date(timeIntervalSince1970: TimeInterval(tv.tv_sec) + TimeInterval(tv.tv_usec) / 1_000_000.0)
+        }
+        return nil
+    }
+
     static func load() -> AppState {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -37,9 +47,21 @@ enum StateManager {
             let activeElapsed = currentUptime - lastFiredUptime
             let sleepDuration = wallClockElapsed - activeElapsed
 
-            if hasRebooted || sleepDuration >= 60.0 {
-                state.lastFired = currentDate
-                state.lastFiredUptime = currentUptime
+            if hasRebooted {
+                let bootDate = getSystemTimeVal(name: "kern.boottime") ?? currentDate
+                state.lastFired = bootDate
+                state.lastFiredUptime = 0.0
+                save(state)
+            } else if sleepDuration >= 60.0 {
+                if let wakeDate = getSystemTimeVal(name: "kern.waketime"), wakeDate > lastFired {
+                    let effectiveWakeDate = min(currentDate, wakeDate)
+                    let elapsedSinceWake = currentDate.timeIntervalSince(effectiveWakeDate)
+                    state.lastFired = effectiveWakeDate
+                    state.lastFiredUptime = max(0.0, currentUptime - elapsedSinceWake)
+                } else {
+                    state.lastFired = currentDate
+                    state.lastFiredUptime = currentUptime
+                }
                 save(state)
             } else if isMigrating {
                 state.lastFiredUptime = lastFiredUptime

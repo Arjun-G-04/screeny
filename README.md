@@ -24,7 +24,9 @@ screeny stop             # stop the service
 
 ## How It Works
 
-macOS **launchd** triggers `screeny --overlay` every N seconds (configured via `StartInterval` in the plist). The overlay is a borderless black window covering your screen fully — click **Skip** 20 times to dismiss it.
+* **High-Precision Scheduling**: Scheduled via macOS `launchd` using `StartInterval`. It runs as an `Interactive` process with `LegacyTimers` enabled, opting out of macOS's energy-saving timer coalescing to ensure the overlay triggers right on time.
+* **Smart Sleep Reset**: The timer is automatically reset when the computer sleeps or is locked for **60 seconds or more** (counting as a valid break). Short interruptions under 60 seconds (like locking the screen to grab water) are ignored, preserving your accumulated active time.
+* **Scheduling Tolerance**: Built with a 60-second timing buffer to account for minor macOS scheduling fluctuations and clock drift, preventing the service from exiting early if triggered a fraction of a second before the target uptime.
 
 ## File Locations
 
@@ -33,3 +35,4 @@ macOS **launchd** triggers `screeny --overlay` every N seconds (configured via `
 | Binary | `/usr/local/bin/screeny` |
 | Launch agent | `~/Library/LaunchAgents/com.arjun.walknotifier.plist` |
 | State (last fired, interval) | `~/.screeny/state.json` |
+| Logs | `/tmp/walknotifier.out` & `/tmp/walknotifier.err` |

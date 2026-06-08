@@ -140,7 +140,8 @@ enum OverlayCommand {
             let effectiveLastUptime = currentUptime < lastUptime ? 0 : lastUptime
             let activeElapsed = currentUptime - effectiveLastUptime
 
-            if activeElapsed < Double(state.intervalSeconds) {
+            let tolerance: Double = 60.0 // 1 minute scheduling tolerance
+            if activeElapsed < Double(state.intervalSeconds) - tolerance {
                 exit(0)
             }
         }

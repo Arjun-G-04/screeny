@@ -1,6 +1,40 @@
 import AppKit
 import Foundation
-import Darwin
+
+// MARK: - CircularProgressView
+// Draws a custom premium system-orange circular progress indicator.
+
+final class CircularProgressView: NSView {
+    var progress: CGFloat = 1.0 {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        let center = NSPoint(x: bounds.midX, y: bounds.midY)
+        let radius = min(bounds.width, bounds.height) / 2.0 - 6.0
+
+        // Track path
+        let trackPath = NSBezierPath()
+        trackPath.appendArc(withCenter: center, radius: radius, startAngle: 0, endAngle: 360)
+        trackPath.lineWidth = 4.0
+        NSColor(white: 1.0, alpha: 0.1).setStroke()
+        trackPath.stroke()
+
+        // Progress path (clockwise countdown starting from the top)
+        let progressPath = NSBezierPath()
+        let startAngle: CGFloat = 90.0
+        let endAngle: CGFloat = 90.0 - (progress * 360.0)
+        progressPath.appendArc(withCenter: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+        progressPath.lineWidth = 4.0
+        progressPath.lineCapStyle = .round
+        NSColor.systemOrange.setStroke()
+        progressPath.stroke()
+    }
+}
 
 // MARK: - OverlayViewController
 
@@ -8,8 +42,12 @@ final class OverlayViewController: NSViewController {
     private var clicksRemaining = 20
     private var timeRemaining = 90
     private var timer: Timer?
-    private var skipButton: NSButton!
+    
+    private var progressContainer: CircularProgressView!
     private var timeLabel: NSTextField!
+    private var skipButton: NSButton!
+    
+    var completionHandler: (() -> Void)?
 
     override func loadView() {
         view = NSView()
@@ -25,54 +63,90 @@ final class OverlayViewController: NSViewController {
 
     private func setupUI() {
         // "Walk" title
-        let titleLabel = NSTextField(labelWithString: "WALK.")
-        titleLabel.font = NSFont.systemFont(ofSize: 120, weight: .bold)
+        let titleLabel = NSTextField(labelWithString: "WALK")
+        titleLabel.font = NSFont.systemFont(ofSize: 100, weight: .bold)
         titleLabel.textColor = .white
         titleLabel.alignment = .center
+        titleLabel.isBezeled = false
+        titleLabel.drawsBackground = false
+        titleLabel.isEditable = false
+        titleLabel.isSelectable = false
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleLabel)
 
-        // Time label
+        // Subtitle text
+        let subtitleLabel = NSTextField(labelWithString: "Look away, stand up, stretch.")
+        subtitleLabel.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+        subtitleLabel.textColor = NSColor(white: 1.0, alpha: 0.6)
+        subtitleLabel.alignment = .center
+        subtitleLabel.isBezeled = false
+        subtitleLabel.drawsBackground = false
+        subtitleLabel.isEditable = false
+        subtitleLabel.isSelectable = false
+        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(subtitleLabel)
+
+        // Progress view
+        progressContainer = CircularProgressView()
+        progressContainer.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(progressContainer)
+
+        // Time label centered inside the circular progress view
         timeLabel = NSTextField(labelWithString: "01:30")
-        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 24, weight: .regular)
-        timeLabel.textColor = NSColor(white: 1.0, alpha: 0.7)
+        timeLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 32, weight: .semibold)
+        timeLabel.textColor = .white
         timeLabel.alignment = .center
+        timeLabel.isBezeled = false
+        timeLabel.drawsBackground = false
+        timeLabel.isEditable = false
+        timeLabel.isSelectable = false
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(timeLabel)
+        progressContainer.addSubview(timeLabel)
 
         // Skip button
         skipButton = NSButton(title: skipTitle(), target: self, action: #selector(skipTapped))
         skipButton.bezelStyle = .rounded
-        skipButton.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        skipButton.font = NSFont.systemFont(ofSize: 14, weight: .medium)
         skipButton.isBordered = false
         skipButton.wantsLayer = true
         skipButton.layer?.backgroundColor = NSColor.clear.cgColor
-        skipButton.layer?.cornerRadius = 4
-        skipButton.layer?.borderWidth = 1
-        skipButton.layer?.borderColor = NSColor(white: 1.0, alpha: 0.30).cgColor
-        skipButton.contentTintColor = NSColor(white: 1.0, alpha: 0.50)
+        skipButton.layer?.cornerRadius = 24
+        skipButton.layer?.borderWidth = 1.5
+        skipButton.layer?.borderColor = NSColor(white: 1.0, alpha: 0.25).cgColor
+        skipButton.contentTintColor = NSColor(white: 1.0, alpha: 0.60)
         skipButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(skipButton)
 
         NSLayoutConstraint.activate([
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -50),
+            titleLabel.bottomAnchor.constraint(equalTo: view.centerYAnchor, constant: -40),
 
-            timeLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            timeLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
+            subtitleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+
+            progressContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            progressContainer.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 40),
+            progressContainer.widthAnchor.constraint(equalToConstant: 160),
+            progressContainer.heightAnchor.constraint(equalToConstant: 160),
+
+            timeLabel.centerXAnchor.constraint(equalTo: progressContainer.centerXAnchor),
+            timeLabel.centerYAnchor.constraint(equalTo: progressContainer.centerYAnchor),
 
             skipButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            skipButton.topAnchor.constraint(equalTo: timeLabel.bottomAnchor, constant: 40),
-            skipButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 200),
-            skipButton.heightAnchor.constraint(equalToConstant: 44),
+            skipButton.topAnchor.constraint(equalTo: progressContainer.bottomAnchor, constant: 40),
+            skipButton.widthAnchor.constraint(equalToConstant: 220),
+            skipButton.heightAnchor.constraint(equalToConstant: 48),
         ])
     }
 
     private func startTimer() {
         updateTimeLabel()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        updateProgress()
+        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.tick()
         }
+        RunLoop.current.add(t, forMode: .common)
+        timer = t
     }
 
     private func tick() {
@@ -81,6 +155,7 @@ final class OverlayViewController: NSViewController {
             closeOverlay()
         } else {
             updateTimeLabel()
+            updateProgress()
         }
     }
 
@@ -88,6 +163,12 @@ final class OverlayViewController: NSViewController {
         let minutes = timeRemaining / 60
         let seconds = timeRemaining % 60
         timeLabel.stringValue = String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private func updateProgress() {
+        let total = 90.0
+        let current = Double(timeRemaining)
+        progressContainer.progress = CGFloat(current / total)
     }
 
     private func skipTitle() -> String {
@@ -108,8 +189,8 @@ final class OverlayViewController: NSViewController {
             } completionHandler: {
                 NSAnimationContext.runAnimationGroup { ctx in
                     ctx.duration = 0.25
-                    self.skipButton.layer?.borderColor = NSColor(white: 1.0, alpha: 0.30).cgColor
-                    self.skipButton.contentTintColor = NSColor(white: 1.0, alpha: 0.50)
+                    self.skipButton.layer?.borderColor = NSColor(white: 1.0, alpha: 0.25).cgColor
+                    self.skipButton.contentTintColor = NSColor(white: 1.0, alpha: 0.60)
                 }
             }
         }
@@ -117,66 +198,6 @@ final class OverlayViewController: NSViewController {
 
     private func closeOverlay() {
         timer?.invalidate()
-        view.window?.close()
-        NSApp.terminate(nil)
-    }
-}
-
-// MARK: - OverlayCommand
-// Key insight: for a CLI (non-bundle) binary, create the window and call
-// NSApp.activate BEFORE NSApp.run(). Doing it inside applicationDidFinishLaunching
-// is unreliable without a proper app bundle.
-
-enum OverlayCommand {
-    static func run() {
-        let state = StateManager.load()
-
-        let args = CommandLine.arguments
-        let force = args.contains("--force") || args.contains("-f") || isatty(STDOUT_FILENO) != 0
-
-        if !force {
-            let currentUptime = ProcessInfo.processInfo.systemUptime
-            let lastUptime = state.lastFiredUptime ?? 0
-            let effectiveLastUptime = currentUptime < lastUptime ? 0 : lastUptime
-            let activeElapsed = currentUptime - effectiveLastUptime
-
-            let tolerance: Double = 60.0 // 1 minute scheduling tolerance
-            if activeElapsed < Double(state.intervalSeconds) - tolerance {
-                exit(0)
-            }
-        }
-
-        let app = NSApplication.shared
-        app.setActivationPolicy(.regular)
-
-        // Build window before running the event loop
-        let screen = NSScreen.main ?? NSScreen.screens.first!
-        let frame = screen.frame
-
-        let window = NSWindow(
-            contentRect: frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.level = .screenSaver
-        window.backgroundColor = .black
-        window.isOpaque = true
-        window.isReleasedWhenClosed = false
-
-        let vc = OverlayViewController()
-        window.contentViewController = vc
-        // Re-enforce the frame — contentViewController assignment can resize the window
-        window.setFrame(frame, display: false)
-
-        window.contentView?.wantsLayer = true
-
-        // Record as late as possible — right when the window appears,
-        // so Last/Next times reflect actual display time, not startup time
-        StateManager.recordFired(intervalSeconds: state.intervalSeconds)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-
-        app.run()
+        completionHandler?()
     }
 }

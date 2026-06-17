@@ -1,12 +1,13 @@
 import Foundation
 
 // MARK: - StateManager
-// Reads and writes ~/.screeny/state.json to track last fired time and interval.
+// Reads and writes ~/.screeny/state.json to track last fired time, interval, and pause state.
 
 struct AppState: Codable {
     var lastFired: Date?
     var lastFiredUptime: Double?
     var intervalSeconds: Int
+    var isPaused: Bool?
 }
 
 enum StateManager {
@@ -30,7 +31,11 @@ enum StateManager {
         guard let data = try? Data(contentsOf: stateFile),
               var state = try? decoder.decode(AppState.self, from: data)
         else {
-            return AppState(lastFired: nil, lastFiredUptime: nil, intervalSeconds: 2400)
+            return AppState(lastFired: nil, lastFiredUptime: nil, intervalSeconds: 2400, isPaused: false)
+        }
+
+        if state.isPaused == nil {
+            state.isPaused = false
         }
 
         let currentDate = Date()

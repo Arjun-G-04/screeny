@@ -7,19 +7,14 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/usr/local/bin/screeny</string>
-		<string>--overlay</string>
 	</array>
 	<key>RunAtLoad</key>
-	<false/>
+	<true/>
 	<key>StandardErrorPath</key>
 	<string>/tmp/walknotifier.err</string>
 	<key>StandardOutPath</key>
 	<string>/tmp/walknotifier.out</string>
 	<key>ProcessType</key>
 	<string>Interactive</string>
-	<key>LegacyTimers</key>
-	<true/>
-	<key>StartInterval</key>
-	<integer>2400</integer>
 </dict>
 </plist>

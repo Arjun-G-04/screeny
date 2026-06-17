@@ -1,32 +1,55 @@
-# Screeny — Walk Notification CLI
+# Screeny — Menu Bar Walk Reminder
 
-A native macOS background service that interrupts you with a fullscreen **"Walk"** screen every N minutes. Dismiss it only by clicking **Skip** 20 times.
+A native macOS background menu bar application that periodically interrupts you with a fullscreen **"Walk"** overlay. Dismiss it only by clicking **Skip** 20 times.
 
-Built with Swift + AppKit. Scheduled via macOS `launchd`.
+Built with Swift + AppKit. Runs continuously in the background, managed via macOS `launchd`.
 
-## Install
+---
+
+## Features
+
+* **Native Menu Bar Interface**: Features a clean walking figure (`figure.walk`) system status icon showing a live countdown, instant break trigger, pause controls, and interval presets.
+* **Vibrant Circular Progress Indicator**: Visualizes the 90-second timeout using a custom-drawn, system-orange countdown progress ring.
+* **Advanced Battery & CPU Optimization**:
+  - **Dynamic Timer Scaling**: Ticks every **10 seconds** normally, boosting to **1 second** only when you open the menu bar item to display a smooth, real-time countdown.
+  - **Sleep Observability**: Completely pauses all timers when screens sleep (such as walking away or closing the lid), ensuring **0% CPU usage** when idle.
+  - **Zero Disk I/O**: Keeps state in memory to preserve SSD health and minimize energy consumption, saving to disk only when configurations or break state changes.
+* **Smart Sleep Reset**: Automatically recalculates breaks if you've been away (computer slept or locked) for **60 seconds or more**, counting it as a completed walk.
+
+---
+
+## Installation & Uninstallation
+
+### To Install:
 
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-Builds the Swift binary, installs it to `/usr/local/bin/screeny`, and starts the launchd service. You'll be prompted for your password once (for the `/usr/local/bin` copy only).
+This compiles the Swift binary in release mode, installs it to `/usr/local/bin/screeny`, configures the launch agent plist in `~/Library/LaunchAgents/`, and loads the background service immediately. You will be prompted for your password once to authorize copying the binary.
+
+### To Uninstall:
+
+```bash
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+This unloads the background service, terminates any running Screeny instances, deletes the plist and binary files, and cleans up the persistent state folder (`~/.screeny`).
+
+---
 
 ## Usage
 
-```bash
-screeny status           # view interval, last/next notification, service state
-screeny set <minutes>    # change notification interval
-screeny start            # start the service
-screeny stop             # stop the service
-```
+Simply look at your macOS menu bar! Left-clicking the walking figure icon reveals the following controls:
+* **Countdown Status**: Displays the exact minutes and seconds remaining until the next break.
+* **Take Break Now**: Manually start the break overlay immediately.
+* **Change Interval**: Choose from presets (20, 30, 40, or 60 minutes) or input a custom interval using the input dialog.
+* **Pause / Resume**: Temporarily suspend the breaks (persisted across app restarts).
+* **Quit Screeny**: Completely close the application.
 
-## How It Works
-
-* **High-Precision Scheduling**: Scheduled via macOS `launchd` using `StartInterval`. It runs as an `Interactive` process with `LegacyTimers` enabled, opting out of macOS's energy-saving timer coalescing to ensure the overlay triggers right on time.
-* **Smart Sleep Reset**: The timer is automatically reset when the computer sleeps or is locked for **60 seconds or more** (counting as a valid break). Short interruptions under 60 seconds (like locking the screen to grab water) are ignored, preserving your accumulated active time.
-* **Scheduling Tolerance**: Built with a 60-second timing buffer to account for minor macOS scheduling fluctuations and clock drift, preventing the service from exiting early if triggered a fraction of a second before the target uptime.
+---
 
 ## File Locations
 
@@ -34,5 +57,5 @@ screeny stop             # stop the service
 |------|----------|
 | Binary | `/usr/local/bin/screeny` |
 | Launch agent | `~/Library/LaunchAgents/com.arjun.walknotifier.plist` |
-| State (last fired, interval) | `~/.screeny/state.json` |
+| State (last fired, interval, pause state) | `~/.screeny/state.json` |
 | Logs | `/tmp/walknotifier.out` & `/tmp/walknotifier.err` |

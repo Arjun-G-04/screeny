@@ -17,9 +17,6 @@ launchctl load ~/Library/LaunchAgents/com.arjun.walknotifier.plist
 
 echo ""
 echo "✅ screeny installed successfully!"
-echo ""
-echo "Try it:"
-echo "  screeny status"
-echo "  screeny set 40"
-echo "  screeny stop"
-echo "  screeny start"
+echo "The Screeny menu bar app is now running!"
+echo "Look for the walking figure icon (🚶) in your macOS menu bar."
+echo "You can adjust the interval, pause, or trigger manual breaks directly from the menu bar UI."
